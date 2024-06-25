@@ -4,6 +4,7 @@ import type { FC } from "hono/jsx";
 import { createRoute } from "honox/factory";
 import { database } from "../../db/client";
 import * as schema from "../../db/schema";
+import { formatDateTime } from "../../ui/datetime";
 import { Header } from "../../ui/header";
 import { Layout } from "../../ui/layout";
 
@@ -20,31 +21,35 @@ const Page: FC<{
     <Layout header={<Header />}>
       <div
         class={css`
-      padding: var(--space-y-md) var(--space-x-md);
-    `}
+          padding: var(--space-y-md) var(--space-x-md);
+        `}
       >
         <h1
           class={css`
-          font-size: 1.2rem;
-          font-weight: bold;
-        `}
+            font-size: 1.2rem;
+            line-height: 1.4;
+            font-weight: bold;
+          `}
         >
           {post.title}
         </h1>
         <p
           class={css`
-          margin-top: var(--space-y-sm);
-        `}
+            margin-top: var(--space-y-sm);
+            font-family: var(--font-mono);
+            font-size: var(--text-sm);
+            color: var(--color-text-subdued);
+          `}
         >
           <time datetime={post.createdAt.toISOString()}>
-            {new Intl.DateTimeFormat("ja-JP").format(post.createdAt)}
+            {formatDateTime(post.createdAt)}
           </time>
         </p>
         <p
           class={css`
-          margin-top: var(--space-y-lg);
-          white-space: pre-wrap;
-        `}
+            margin-top: var(--space-y-lg);
+            white-space: pre-wrap;
+          `}
         >
           {post.body}
         </p>

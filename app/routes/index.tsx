@@ -4,6 +4,7 @@ import type { FC } from "hono/jsx";
 import { createRoute } from "honox/factory";
 import { database } from "../db/client";
 import { post } from "../db/schema";
+import { formatDateTime } from "../ui/datetime";
 import { Header } from "../ui/header";
 import { Layout } from "../ui/layout";
 
@@ -15,23 +16,50 @@ export default createRoute(async (c) => {
     <Layout header={<Header isTop />}>
       <div
         class={css`
-        margin-top: var(--space-y-md);
-        padding: 0 var(--space-x-md);
-      `}
+          margin-top: var(--space-y-md);
+          padding: 0 var(--space-x-md);
+        `}
       >
-        <article>
+        <article
+          class={css`
+            font-family: var(--font-mono);
+          `}
+        >
+          <header
+            class={css`
+              display: flex;
+              font-size: var(--text-sm);
+              color: var(--color-text-subdued);
+            `}
+          >
+            <span
+              class={css`
+                flex: 1 1 auto;
+              `}
+            >
+              title
+            </span>
+            <span>date</span>
+          </header>
           <ul
             class={css`
-            margin-top: var(--space-y-md);
-            list-style-type: none;
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-y-sm);
-          `}
+              margin-top: var(--space-y-md);
+              list-style-type: none;
+              display: flex;
+              flex-direction: column;
+              gap: var(--space-y-md);
+            `}
           >
-            {posts.map((post) => (
-              <PostListItem title={post.title} slug={post.slug} />
-            ))}
+            {posts.map((post) => {
+              if (!post.publishedAt) throw new Error("unexpected");
+              return (
+                <PostListItem
+                  title={post.title}
+                  slug={post.slug}
+                  publishedAt={post.publishedAt}
+                />
+              );
+            })}
           </ul>
         </article>
       </div>
@@ -43,24 +71,30 @@ export default createRoute(async (c) => {
 const PostListItem: FC<{
   title: string;
   slug: string;
-}> = ({ title, slug }) => {
+  publishedAt: Date;
+}> = ({ title, slug, publishedAt }) => {
   return (
     <li
       class={css`
         display: flex;
-        flex-direction: column;
-        gap: var(--space-y-sm);
+        align-items: center;
+        gap: var(--space-y-md);
       `}
     >
-      <a
-        href={`/posts/${slug}`}
+      <span
         class={css`
-          color: var(--color-text-link);
+          flex: 1 1 auto;
         `}
       >
-        {title}
-      </a>
-      <span>2024/06/09</span>
+        <a href={`/posts/${slug}`}>{title}</a>
+      </span>
+      <span
+        class={css`
+          color: var(--color-text-subdued);
+        `}
+      >
+        {formatDateTime(publishedAt)}
+      </span>
     </li>
   );
 };

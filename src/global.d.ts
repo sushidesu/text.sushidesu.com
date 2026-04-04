@@ -5,8 +5,10 @@ type Head = {
 };
 
 declare module "hono" {
-  type ContextRenderer = (
-    content: string | Promise<string>,
-    head?: Head,
-  ) => Response | Promise<Response>;
+  interface ContextRenderer {
+    (
+      content: string | Promise<string>,
+      head?: Head,
+    ): Response | Promise<Response>;
+  }
 }

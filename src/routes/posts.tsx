@@ -1,11 +1,11 @@
 import { and, eq, isNotNull } from "drizzle-orm";
+import { Hono } from "hono";
 import { css } from "hono/css";
 import type { FC } from "hono/jsx";
-import { createRoute } from "honox/factory";
-import { database } from "../../db/client";
-import * as schema from "../../db/schema";
-import { Header } from "../../ui/header";
-import { Layout } from "../../ui/layout";
+import { type AppBindings, database } from "../db/client";
+import { post } from "../db/schema";
+import { Header } from "../ui/header";
+import { Layout } from "../ui/layout";
 
 const Page: FC<{
   post: {
@@ -20,21 +20,21 @@ const Page: FC<{
     <Layout header={<Header />}>
       <div
         class={css`
-      padding: var(--space-y-md) var(--space-x-md);
-    `}
+          padding: var(--space-y-md) var(--space-x-md);
+        `}
       >
         <h1
           class={css`
-          font-size: 1.2rem;
-          font-weight: bold;
-        `}
+            font-size: 1.2rem;
+            font-weight: bold;
+          `}
         >
           {post.title}
         </h1>
         <p
           class={css`
-          margin-top: var(--space-y-sm);
-        `}
+            margin-top: var(--space-y-sm);
+          `}
         >
           <time datetime={post.createdAt.toISOString()}>
             {new Intl.DateTimeFormat("ja-JP").format(post.createdAt)}
@@ -42,9 +42,9 @@ const Page: FC<{
         </p>
         <p
           class={css`
-          margin-top: var(--space-y-lg);
-          white-space: pre-wrap;
-        `}
+            margin-top: var(--space-y-lg);
+            white-space: pre-wrap;
+          `}
         >
           {post.body}
         </p>
@@ -53,16 +53,15 @@ const Page: FC<{
   );
 };
 
-export default createRoute(async (c) => {
-  const { slug } = c.req.param();
-  if (!slug) {
-    return c.notFound();
-  }
-  const db = database(c.env);
+export const postsRoutes = new Hono<{ Bindings: AppBindings }>();
+
+postsRoutes.get("/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const db = database(c.env.DB);
   const [p] = await db
     .select()
-    .from(schema.post)
-    .where(and(eq(schema.post.slug, slug), isNotNull(schema.post.publishedAt)));
+    .from(post)
+    .where(and(eq(post.slug, slug), isNotNull(post.publishedAt)));
 
   if (!p) {
     return c.notFound();

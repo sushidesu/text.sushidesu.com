@@ -18,9 +18,9 @@ export const Header: FC<HeaderProps> = ({ isTop = false }) => {
       {isTop ? (
         <span
           class={css`
-          font-size: 1rem;
-          font-weight: bold;
-        `}
+            font-size: 1rem;
+            font-weight: bold;
+          `}
         >
           text.sushidesu.com
         </span>
@@ -28,9 +28,9 @@ export const Header: FC<HeaderProps> = ({ isTop = false }) => {
         <a href={"/"}>
           <span
             class={css`
-          font-size: 1rem;
-          font-weight: bold;
-        `}
+              font-size: 1rem;
+              font-weight: bold;
+            `}
           >
             text.sushidesu.com
           </span>

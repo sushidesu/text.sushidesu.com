@@ -25,7 +25,12 @@ export const Header: FC<HeaderProps> = ({ isTop = false }) => {
           text.sushidesu.com
         </span>
       ) : (
-        <a href={"/"}>
+        <a
+          href={"/"}
+          class={css`
+            color: var(--color-text-link);
+          `}
+        >
           <span
             class={css`
               font-size: 1rem;

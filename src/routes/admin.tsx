@@ -22,8 +22,7 @@ type PostFormValue = {
   title: string;
   slug: string;
   body: string;
-  createdAt: Date;
-  isPublished: boolean;
+  publishedAt: Date | null;
 };
 
 const PostEditor: FC<{
@@ -59,12 +58,17 @@ const PostEditor: FC<{
             {post.body}
           </textarea>
         </div>
-        <div>
-          <label>publish</label>
+        <div class={formControl}>
+          <label>publishedAt (empty = unpublished)</label>
           <input
-            name={"isPublished"}
-            type={"checkbox"}
-            checked={post.isPublished}
+            class={textInput}
+            name={"publishedAt"}
+            type={"datetime-local"}
+            value={
+              post.publishedAt
+                ? formatDatetimeLocal(post.publishedAt)
+                : undefined
+            }
           />
         </div>
         <div>
@@ -81,12 +85,18 @@ const PostEditor: FC<{
   );
 };
 
+const formatDatetimeLocal = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}`;
+};
+
 const emptyPost = (): PostFormValue => ({
   title: "",
   slug: "",
   body: "",
-  createdAt: new Date(),
-  isPublished: false,
+  publishedAt: null,
 });
 
 export const adminRoutes = new Hono<{ Bindings: AppBindings }>();
@@ -151,8 +161,7 @@ adminRoutes.get("/posts/:slug", async (c) => {
         title: p.title,
         slug: p.slug,
         body: p.body,
-        createdAt: p.createdAt,
-        isPublished: p.publishedAt !== null,
+        publishedAt: p.publishedAt,
       }}
     />,
   );
@@ -166,7 +175,7 @@ adminRoutes.post(
       title: z.string().min(1),
       slug: z.string().min(1),
       body: z.string(),
-      isPublished: z.literal("on").optional(),
+      publishedAt: z.string().optional(),
     }),
     (result, c) => {
       if (!result.success) {
@@ -176,8 +185,9 @@ adminRoutes.post(
               title: result.data.title,
               slug: result.data.slug,
               body: result.data.body,
-              createdAt: new Date(),
-              isPublished: result.data.isPublished === "on",
+              publishedAt: result.data.publishedAt
+                ? new Date(result.data.publishedAt)
+                : null,
             }}
             error={result.error.flatten().fieldErrors}
           />,
@@ -187,7 +197,13 @@ adminRoutes.post(
   ),
   async (c) => {
     const currentSlug = c.req.param("slug");
-    const { title, slug, body, isPublished } = c.req.valid("form");
+    const {
+      title,
+      slug,
+      body,
+      publishedAt: publishedAtStr,
+    } = c.req.valid("form");
+    const publishedAt = publishedAtStr ? new Date(publishedAtStr) : null;
 
     const db = database(c.env.DB);
     const [p] = await db
@@ -203,7 +219,7 @@ adminRoutes.post(
         slug,
         createdAt: new Date(),
         updatedAt: new Date(),
-        publishedAt: isPublished ? new Date() : null,
+        publishedAt,
       });
     } else {
       await db
@@ -213,7 +229,7 @@ adminRoutes.post(
           body,
           slug,
           updatedAt: new Date(),
-          publishedAt: isPublished ? new Date() : null,
+          publishedAt,
         })
         .where(eq(postTable.slug, currentSlug));
     }

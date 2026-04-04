@@ -24,7 +24,7 @@ type Post = {
   slug: string;
   body: string;
   createdAt: Date;
-  isPublished: boolean;
+  publishedAt: Date | null;
 };
 
 const Page: FC<{ post: Post; error?: Record<string, string[] | undefined> }> =
@@ -35,14 +35,15 @@ const Page: FC<{ post: Post; error?: Record<string, string[] | undefined> }> =
           padding: var(--space-y-md) var(--space-x-md);
         `}
       >
-        <a href={"/admin/posts"}>back to posts</a>
+        <a href={"/admin/posts"}>← back to posts</a>
         <form
           method={"POST"}
           class={css`
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-y-md);
-        `}
+            margin-top: var(--space-y-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-y-md);
+          `}
         >
           <div class={formControl}>
             <label>title</label>
@@ -58,20 +59,28 @@ const Page: FC<{ post: Post; error?: Record<string, string[] | undefined> }> =
               {post.body}
             </textarea>
           </div>
-          <div>
-            <label>publish</label>
+          <div class={formControl}>
+            <label>published at</label>
             <input
-              name={"isPublished"}
-              type={"checkbox"}
-              checked={post.isPublished}
+              name={"publishedAt"}
+              type={"date"}
+              value={
+                post.publishedAt
+                  ? post.publishedAt.toISOString().split("T")[0]
+                  : undefined
+              }
             />
           </div>
           <div>
-            <button type={"submit"}>POST</button>
+            <button type={"submit"}>SAVE</button>
           </div>
         </form>
 
-        <hr />
+        <hr
+          class={css`
+            margin: var(--space-y-md) 0;
+          `}
+        />
 
         <form method={"POST"} action={`/admin/posts/${post.slug}/delete`}>
           <button type={"submit"}>DELETE</button>
@@ -100,7 +109,7 @@ export default createRoute(async (c) => {
           slug: "",
           body: "",
           createdAt: new Date(),
-          isPublished: false,
+          publishedAt: null,
         }}
       />,
     );
@@ -113,7 +122,7 @@ export default createRoute(async (c) => {
         slug: p.slug,
         body: p.body,
         createdAt: p.createdAt,
-        isPublished: p.publishedAt !== null,
+        publishedAt: p.publishedAt,
       }}
     />,
   );
@@ -126,7 +135,7 @@ export const POST = createRoute(
       title: z.string().min(1),
       slug: z.string().min(1),
       body: z.string(),
-      isPublished: z.literal("on").optional(),
+      publishedAt: z.string(),
     }),
     (result, c) => {
       if (!result.success) {
@@ -137,7 +146,7 @@ export const POST = createRoute(
               slug: result.data.slug,
               body: result.data.body,
               createdAt: new Date(),
-              isPublished: result.data.isPublished === "on",
+              publishedAt: null,
             }}
             error={result.error.flatten().fieldErrors}
           />,
@@ -147,7 +156,10 @@ export const POST = createRoute(
   ),
   async (c) => {
     const { slug: currentSlug } = c.req.param();
-    const { title, slug, body, isPublished } = c.req.valid("form");
+    const values = c.req.valid("form");
+
+    const publishedAt =
+      values.publishedAt !== "" ? new Date(values.publishedAt) : null;
 
     const db = database(c.env);
     // await db.transaction(async (tx) => {
@@ -159,28 +171,28 @@ export const POST = createRoute(
       // create new post
       await db.insert(schema.post).values({
         id: nanoid(),
-        title,
-        body,
-        slug,
+        title: values.title,
+        body: values.body,
+        slug: values.slug,
         createdAt: new Date(),
         updatedAt: new Date(),
-        publishedAt: isPublished ? new Date() : null,
+        publishedAt,
       });
     } else {
       // update post
       await db
         .update(schema.post)
         .set({
-          title,
-          body,
-          slug,
+          title: values.title,
+          body: values.body,
+          slug: values.slug,
           updatedAt: new Date(),
-          publishedAt: isPublished ? new Date() : null,
+          publishedAt,
         })
         .where(eq(schema.post.slug, currentSlug));
     }
     // });
 
-    return c.redirect(`/admin/posts/${slug}`, 303);
+    return c.redirect(`/admin/posts/${values.slug}`, 303);
   },
 );

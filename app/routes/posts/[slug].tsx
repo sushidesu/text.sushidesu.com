@@ -38,7 +38,7 @@ const Page: FC<{
             margin-top: var(--space-y-sm);
             font-family: var(--font-mono);
             font-size: var(--text-sm);
-            color: var(--color-text-subdued);
+            color: var(--color-text-secondary);
           `}
         >
           <time datetime={post.createdAt.toISOString()}>

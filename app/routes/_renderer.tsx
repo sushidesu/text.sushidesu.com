@@ -21,7 +21,8 @@ export default jsxRenderer(({ children, title }) => {
             --space-y-lg: 2rem;
             --color-text-primary: #232733;
             --color-text-link: #0070f3;
-            --color-text-subdued: #6e6c77;
+            --color-text-secondary: #6e6c77;
+            --color-text-tertiary: #8d8f9f;
             --font-mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
             --text-sm: 0.875rem;
           }

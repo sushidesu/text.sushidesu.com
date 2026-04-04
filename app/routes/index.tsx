@@ -1,4 +1,4 @@
-import { isNotNull } from "drizzle-orm";
+import { desc, isNotNull } from "drizzle-orm";
 import { css } from "hono/css";
 import type { FC } from "hono/jsx";
 import { createRoute } from "honox/factory";
@@ -10,7 +10,11 @@ import { Layout } from "../ui/layout";
 
 export default createRoute(async (c) => {
   const db = database(c.env);
-  const posts = await db.select().from(post).where(isNotNull(post.publishedAt));
+  const posts = await db
+    .select()
+    .from(post)
+    .where(isNotNull(post.publishedAt))
+    .orderBy(desc(post.publishedAt));
 
   return c.render(
     <Layout header={<Header isTop />}>
@@ -29,7 +33,7 @@ export default createRoute(async (c) => {
             class={css`
               display: flex;
               font-size: var(--text-sm);
-              color: var(--color-text-subdued);
+              color: var(--color-text-tertiary);
             `}
           >
             <span
@@ -90,7 +94,7 @@ const PostListItem: FC<{
       </span>
       <span
         class={css`
-          color: var(--color-text-subdued);
+          color: var(--color-text-secondary);
         `}
       >
         {formatDateTime(publishedAt)}

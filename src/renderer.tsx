@@ -16,15 +16,14 @@ export const renderer = jsxRenderer(({ children, title }) => {
             --space-y-sm: 0.25rem;
             --space-y-md: 1rem;
             --space-y-lg: 2rem;
-            --color-text-link: #0070f3;
           }
           *, *::before, *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
           }
-          body {
-            font-family: sans-serif;
+body {
+            font-family: "Inter","Inter Fallback","Helvetica Neue",Arial,"Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif;
             font-size: 16px;
           }
         `}</Style>

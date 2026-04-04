@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { css } from "hono/css";
 import type { FC } from "hono/jsx";
@@ -103,7 +103,13 @@ export const adminRoutes = new Hono<{ Bindings: AppBindings }>();
 
 adminRoutes.get("/posts", async (c) => {
   const db = database(c.env.DB);
-  const posts = await db.select().from(postTable);
+  const posts = await db
+    .select()
+    .from(postTable)
+    .orderBy(
+      sql`case when ${postTable.publishedAt} is null then 0 else 1 end`,
+      desc(postTable.createdAt),
+    );
 
   return c.render(
     <div

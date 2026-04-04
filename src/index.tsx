@@ -1,4 +1,4 @@
-import { isNotNull } from "drizzle-orm";
+import { desc, isNotNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { css } from "hono/css";
 import type { FC } from "hono/jsx";
@@ -9,6 +9,7 @@ import { adminRoutes } from "./routes/admin";
 import { postsRoutes } from "./routes/posts";
 import { Header } from "./ui/header";
 import { Layout } from "./ui/layout";
+import { Link } from "./ui/link";
 
 const app = new Hono<{ Bindings: AppBindings }>();
 
@@ -16,7 +17,11 @@ app.use(renderer);
 
 app.get("/", async (c) => {
   const db = database(c.env.DB);
-  const posts = await db.select().from(post).where(isNotNull(post.publishedAt));
+  const posts = await db
+    .select()
+    .from(post)
+    .where(isNotNull(post.publishedAt))
+    .orderBy(desc(post.publishedAt));
 
   return c.render(
     <Layout header={<Header isTop />}>
@@ -31,9 +36,10 @@ app.get("/", async (c) => {
             class={css`
               margin-top: var(--space-y-md);
               list-style-type: none;
-              display: flex;
-              flex-direction: column;
-              gap: var(--space-y-sm);
+              display: grid;
+              grid-template-columns: auto 1fr;
+              gap: var(--space-y-sm) var(--space-x-md);
+              align-items: center;
             `}
           >
             {posts.map((entry) => (
@@ -64,24 +70,17 @@ const PostListItem: FC<{
   return (
     <li
       class={css`
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-y-sm);
+        display: contents;
       `}
     >
-      <a
-        href={`/posts/${slug}`}
-        class={css`
-          color: var(--color-text-link);
-        `}
-      >
-        {title}
-      </a>
-      {publishedAt && (
+      {publishedAt ? (
         <time datetime={publishedAt.toISOString()}>
           {new Intl.DateTimeFormat("ja-JP").format(publishedAt)}
         </time>
+      ) : (
+        <span />
       )}
+      <Link href={`/posts/${slug}`}>{title}</Link>
     </li>
   );
 };

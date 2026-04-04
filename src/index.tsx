@@ -37,7 +37,11 @@ app.get("/", async (c) => {
             `}
           >
             {posts.map((entry) => (
-              <PostListItem title={entry.title} slug={entry.slug} />
+              <PostListItem
+                title={entry.title}
+                slug={entry.slug}
+                publishedAt={entry.publishedAt}
+              />
             ))}
           </ul>
         </article>
@@ -55,7 +59,8 @@ export default app;
 const PostListItem: FC<{
   title: string;
   slug: string;
-}> = ({ title, slug }) => {
+  publishedAt: Date | null;
+}> = ({ title, slug, publishedAt }) => {
   return (
     <li
       class={css`
@@ -72,7 +77,11 @@ const PostListItem: FC<{
       >
         {title}
       </a>
-      <span>2024/06/09</span>
+      {publishedAt && (
+        <time datetime={publishedAt.toISOString()}>
+          {new Intl.DateTimeFormat("ja-JP").format(publishedAt)}
+        </time>
+      )}
     </li>
   );
 };

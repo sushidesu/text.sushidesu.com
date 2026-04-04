@@ -12,8 +12,7 @@ const Page: FC<{
     title: string;
     slug: string;
     body: string;
-    createdAt: Date;
-    isPublished: boolean;
+    publishedAt: Date | null;
   };
 }> = ({ post }) => {
   return (
@@ -36,9 +35,11 @@ const Page: FC<{
             margin-top: var(--space-y-sm);
           `}
         >
-          <time datetime={post.createdAt.toISOString()}>
-            {new Intl.DateTimeFormat("ja-JP").format(post.createdAt)}
-          </time>
+          {post.publishedAt && (
+            <time datetime={post.publishedAt.toISOString()}>
+              {new Intl.DateTimeFormat("ja-JP").format(post.publishedAt)}
+            </time>
+          )}
         </p>
         <p
           class={css`
@@ -73,8 +74,7 @@ postsRoutes.get("/:slug", async (c) => {
         title: p.title,
         slug: p.slug,
         body: p.body,
-        createdAt: p.createdAt,
-        isPublished: p.publishedAt !== null,
+        publishedAt: p.publishedAt,
       }}
     />,
     {

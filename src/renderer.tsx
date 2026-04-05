@@ -17,6 +17,7 @@ export const renderer = jsxRenderer(({ children, title }) => {
             --space-y-sm: 0.25rem;
             --space-y-md: 1rem;
             --space-y-lg: 2rem;
+            --color-link-hover: #0070f3;
           }
           *, *::before, *::after {
             box-sizing: border-box;

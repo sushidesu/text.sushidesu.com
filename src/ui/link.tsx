@@ -13,6 +13,10 @@ const textLinkStyle = css`
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 0.15em;
+  width: fit-content;
+  &:hover {
+    color: var(--color-link-hover);
+  }
 `;
 
 export const TextLink: FC<LinkProps> = (props) => {
@@ -33,6 +37,10 @@ const iconLinkStyle = css`
   width: 20px;
   height: 20px;
   padding-bottom: 1px;
+  &:hover {
+    color: var(--color-link-hover);
+    border-bottom-color: var(--color-link-hover);
+  }
 `;
 
 export const IconLink: FC<LinkProps> = (props) => {

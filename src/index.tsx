@@ -9,7 +9,7 @@ import { adminRoutes } from "./routes/admin";
 import { postsRoutes } from "./routes/posts";
 import { Header } from "./ui/header";
 import { Layout } from "./ui/layout";
-import { Link } from "./ui/link";
+import { TextLink } from "./ui/link";
 
 const app = new Hono<{ Bindings: AppBindings }>();
 
@@ -38,7 +38,7 @@ app.get("/", async (c) => {
               list-style-type: none;
               display: grid;
               grid-template-columns: auto 1fr;
-              gap: var(--space-y-sm) var(--space-x-md);
+              gap: var(--space-y-md) var(--space-x-md);
               align-items: center;
             `}
           >
@@ -80,7 +80,7 @@ const PostListItem: FC<{
       ) : (
         <span />
       )}
-      <Link href={`/posts/${slug}`}>{title}</Link>
+      <TextLink href={`/posts/${slug}`}>{title}</TextLink>
     </li>
   );
 };

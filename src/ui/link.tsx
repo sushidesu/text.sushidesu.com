@@ -1,13 +1,6 @@
 import { css } from "hono/css";
 import type { Child, FC } from "hono/jsx";
 
-const linkStyle = css`
-  color: inherit;
-  text-decoration: none;
-  border-bottom: 1px solid currentColor;
-  width: fit-content;
-`;
-
 type LinkProps = {
   href: string;
   target?: string;
@@ -16,9 +9,29 @@ type LinkProps = {
   children: Child;
 };
 
-export const Link: FC<LinkProps> = (props) => {
+const textLinkStyle = css`
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+`;
+
+export const TextLink: FC<LinkProps> = (props) => {
   return (
-    <a class={linkStyle} {...props}>
+    <a class={textLinkStyle} {...props}>
+      {props.children}
+    </a>
+  );
+};
+
+const iconLinkStyle = css`
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+`;
+
+export const IconLink: FC<LinkProps> = (props) => {
+  return (
+    <a class={iconLinkStyle} {...props}>
       {props.children}
     </a>
   );

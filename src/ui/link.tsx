@@ -27,6 +27,12 @@ const iconLinkStyle = css`
   color: inherit;
   text-decoration: none;
   border-bottom: 1px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding-bottom: 1px;
 `;
 
 export const IconLink: FC<LinkProps> = (props) => {

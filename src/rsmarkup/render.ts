@@ -25,7 +25,11 @@ const renderInline = (nodes: Inline[]): string =>
         case "lineBreak":
           return "<br>";
         case "link":
-          return `<a href="${escapeHtml(n.url)}">${escapeHtml(n.label)}</a>`;
+          return `<a href="${escapeHtml(
+            n.url,
+          )}" target="_blank" rel="noopener noreferrer">${escapeHtml(
+            n.label,
+          )}</a>`;
         case "inlineCode":
           return `<code>${escapeHtml(n.value)}</code>`;
       }

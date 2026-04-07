@@ -35,19 +35,19 @@ describe("render", () => {
 
   test("link bare", () => {
     expect(r("\\@ https://example.com \\")).toBe(
-      '<p><a href="https://example.com">https://example.com</a></p>',
+      '<p><a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a></p>',
     );
   });
 
   test("link with label", () => {
     expect(r("\\@ https://example.com ex \\")).toBe(
-      '<p><a href="https://example.com">ex</a></p>',
+      '<p><a href="https://example.com" target="_blank" rel="noopener noreferrer">ex</a></p>',
     );
   });
 
   test("link surrounded by text", () => {
     expect(r("前 \\@ https://example.com ex \\ 後")).toBe(
-      '<p>前 <a href="https://example.com">ex</a> 後</p>',
+      '<p>前 <a href="https://example.com" target="_blank" rel="noopener noreferrer">ex</a> 後</p>',
     );
   });
 
@@ -73,7 +73,7 @@ describe("render", () => {
   test("list item with link", () => {
     const src = ["\\-", "\\@ https://example.com ex \\", "\\"].join("\n");
     expect(r(src)).toBe(
-      '<ul><li><a href="https://example.com">ex</a></li></ul>',
+      '<ul><li><a href="https://example.com" target="_blank" rel="noopener noreferrer">ex</a></li></ul>',
     );
   });
 
@@ -106,7 +106,7 @@ describe("render", () => {
 
   test("escapes html in link url and label", () => {
     expect(r('\\@ https://ex.com/?a="b" <x> \\')).toBe(
-      '<p><a href="https://ex.com/?a=&quot;b&quot;">&lt;x&gt;</a></p>',
+      '<p><a href="https://ex.com/?a=&quot;b&quot;" target="_blank" rel="noopener noreferrer">&lt;x&gt;</a></p>',
     );
   });
 

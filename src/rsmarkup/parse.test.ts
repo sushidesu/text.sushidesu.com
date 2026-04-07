@@ -58,6 +58,15 @@ describe("parse: paragraph and line break", () => {
     );
   });
 
+  test("CRLF line endings are treated the same as LF", () => {
+    expect(parse("a\r\n\r\nb")).toEqual(
+      doc(
+        { type: "paragraph", children: [{ type: "text", value: "a" }] },
+        { type: "paragraph", children: [{ type: "text", value: "b" }] },
+      ),
+    );
+  });
+
   test("leading and trailing blank lines are ignored", () => {
     expect(parse("\n\nhello\n\n")).toEqual(
       doc({
@@ -85,7 +94,7 @@ describe("parse: paragraph and line break", () => {
 
 describe("parse: heading", () => {
   test("h1 on its own line", () => {
-    expect(parse("\\ 1 見出し \\")).toEqual(
+    expect(parse("\\1 見出し \\")).toEqual(
       doc({
         type: "heading",
         level: 1,
@@ -96,7 +105,7 @@ describe("parse: heading", () => {
 
   test("h2 through h6", () => {
     for (const level of [2, 3, 4, 5, 6] as const) {
-      expect(parse(`\\ ${level} t \\`)).toEqual(
+      expect(parse(`\\${level} t \\`)).toEqual(
         doc({
           type: "heading",
           level,
@@ -106,17 +115,17 @@ describe("parse: heading", () => {
     }
   });
 
-  test("heading inside a paragraph line is plain text", () => {
-    expect(parse("before \\ 1 h \\ after")).toEqual(
+  test("heading-like pattern inside a paragraph is plain text", () => {
+    expect(parse("before \\1 h \\ after")).toEqual(
       doc({
         type: "paragraph",
-        children: [{ type: "text", value: "before \\ 1 h \\ after" }],
+        children: [{ type: "text", value: "before \\1 h \\ after" }],
       }),
     );
   });
 
   test("heading preserves multi-word content", () => {
-    expect(parse("\\ 2 hello world \\")).toEqual(
+    expect(parse("\\2 hello world \\")).toEqual(
       doc({
         type: "heading",
         level: 2,
@@ -126,14 +135,14 @@ describe("parse: heading", () => {
   });
 
   test("level 7 is not a heading (falls through)", () => {
-    const result = parse("\\ 7 text \\");
+    const result = parse("\\7 text \\");
     expect(result.children[0]?.type).not.toBe("heading");
   });
 });
 
 describe("parse: inline link", () => {
-  test("bare URL in a command becomes a link", () => {
-    expect(parse("\\ https://example.com \\")).toEqual(
+  test("bare URL (no label)", () => {
+    expect(parse("\\@ https://example.com \\")).toEqual(
       doc({
         type: "paragraph",
         children: [
@@ -148,7 +157,7 @@ describe("parse: inline link", () => {
   });
 
   test("URL with label", () => {
-    expect(parse("\\ https://example.com example \\")).toEqual(
+    expect(parse("\\@ https://example.com example \\")).toEqual(
       doc({
         type: "paragraph",
         children: [
@@ -159,7 +168,7 @@ describe("parse: inline link", () => {
   });
 
   test("label with multiple words", () => {
-    expect(parse("\\ https://example.com hello world \\")).toEqual(
+    expect(parse("\\@ https://example.com hello world \\")).toEqual(
       doc({
         type: "paragraph",
         children: [
@@ -174,7 +183,7 @@ describe("parse: inline link", () => {
   });
 
   test("http URL is accepted", () => {
-    expect(parse("\\ http://example.com \\")).toEqual(
+    expect(parse("\\@ http://example.com \\")).toEqual(
       doc({
         type: "paragraph",
         children: [
@@ -190,7 +199,7 @@ describe("parse: inline link", () => {
 
   test("URL with query and fragment", () => {
     const url = "https://example.com/path?q=1&r=2#frag";
-    expect(parse(`\\ ${url} \\`)).toEqual(
+    expect(parse(`\\@ ${url} \\`)).toEqual(
       doc({
         type: "paragraph",
         children: [{ type: "link", url, label: url }],
@@ -199,7 +208,7 @@ describe("parse: inline link", () => {
   });
 
   test("link surrounded by text in a paragraph", () => {
-    expect(parse("前 \\ https://example.com ex \\ 後")).toEqual(
+    expect(parse("前 \\@ https://example.com ex \\ 後")).toEqual(
       doc({
         type: "paragraph",
         children: [
@@ -213,7 +222,7 @@ describe("parse: inline link", () => {
 
   test("multiple links on one line", () => {
     expect(
-      parse("\\ https://a.example \\ と \\ https://b.example b \\"),
+      parse("\\@ https://a.example \\ と \\@ https://b.example b \\"),
     ).toEqual(
       doc({
         type: "paragraph",
@@ -229,12 +238,76 @@ describe("parse: inline link", () => {
       }),
     );
   });
+});
 
-  test("unknown inline TYPE falls through as plain text", () => {
-    expect(parse("\\ unknown foo \\")).toEqual(
+describe("parse: inline code", () => {
+  test("simple inline code", () => {
+    expect(parse("\\! hoge \\")).toEqual(
       doc({
         type: "paragraph",
-        children: [{ type: "text", value: "\\ unknown foo \\" }],
+        children: [{ type: "inlineCode", value: "hoge" }],
+      }),
+    );
+  });
+
+  test("inline code with multiple words", () => {
+    expect(parse("\\! const x = 1 \\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [{ type: "inlineCode", value: "const x = 1" }],
+      }),
+    );
+  });
+
+  test("inline code surrounded by text", () => {
+    expect(parse("前 \\! code \\ 後")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [
+          { type: "text", value: "前 " },
+          { type: "inlineCode", value: "code" },
+          { type: "text", value: " 後" },
+        ],
+      }),
+    );
+  });
+
+  test("inline code containing a single backslash", () => {
+    expect(parse("\\! \\ \\ なので \\! hoge \\ です")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [
+          { type: "inlineCode", value: "\\" },
+          { type: "text", value: " なので " },
+          { type: "inlineCode", value: "hoge" },
+          { type: "text", value: " です" },
+        ],
+      }),
+    );
+  });
+
+  test("inline code inside list item", () => {
+    const src = ["\\-", "\\! foo \\", "\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "list",
+        items: [
+          {
+            type: "listItem",
+            children: [{ type: "inlineCode", value: "foo" }],
+          },
+        ],
+      }),
+    );
+  });
+});
+
+describe("parse: unknown inline type", () => {
+  test("unknown inline TYPE char is treated as literal text", () => {
+    expect(parse("\\x foo \\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [{ type: "text", value: "\\x foo \\" }],
       }),
     );
   });
@@ -256,7 +329,7 @@ describe("parse: list block", () => {
   });
 
   test("list item with inline link", () => {
-    const src = ["\\-", "\\ https://example.com ex \\", "plain", "\\"].join(
+    const src = ["\\-", "\\@ https://example.com ex \\", "plain", "\\"].join(
       "\n",
     );
     expect(parse(src)).toEqual(
@@ -312,7 +385,7 @@ describe("parse: list block", () => {
 
 describe("parse: code block", () => {
   test("code with language", () => {
-    const src = ["\\!ts", "const x = 0", "\\"].join("\n");
+    const src = ["\\! ts", "const x = 0", "\\"].join("\n");
     expect(parse(src)).toEqual(
       doc({ type: "code", lang: "ts", content: "const x = 0" }),
     );
@@ -324,7 +397,9 @@ describe("parse: code block", () => {
   });
 
   test("code preserves multiple lines and indentation", () => {
-    const src = ["\\!ts", "function f() {", "  return 1", "}", "\\"].join("\n");
+    const src = ["\\! ts", "function f() {", "  return 1", "}", "\\"].join(
+      "\n",
+    );
     expect(parse(src)).toEqual(
       doc({
         type: "code",
@@ -335,12 +410,12 @@ describe("parse: code block", () => {
   });
 
   test("code does not parse inline commands inside", () => {
-    const src = ["\\!ts", "\\ https://example.com \\", "\\"].join("\n");
+    const src = ["\\! ts", "\\@ https://example.com \\", "\\"].join("\n");
     expect(parse(src)).toEqual(
       doc({
         type: "code",
         lang: "ts",
-        content: "\\ https://example.com \\",
+        content: "\\@ https://example.com \\",
       }),
     );
   });
@@ -353,7 +428,7 @@ describe("parse: code block", () => {
   });
 
   test("code without closing backslash auto-closes at EOF", () => {
-    const src = ["\\!ts", "const x = 0"].join("\n");
+    const src = ["\\! ts", "const x = 0"].join("\n");
     expect(parse(src)).toEqual(
       doc({ type: "code", lang: "ts", content: "const x = 0" }),
     );
@@ -368,7 +443,7 @@ describe("parse: code block", () => {
 describe("parse: mixed blocks", () => {
   test("heading, paragraph, list, code in sequence", () => {
     const src = [
-      "\\ 1 タイトル \\",
+      "\\1 タイトル \\",
       "",
       "導入の段落。",
       "2行目。",
@@ -378,7 +453,7 @@ describe("parse: mixed blocks", () => {
       "bar",
       "\\",
       "",
-      "\\!ts",
+      "\\! ts",
       "const x = 1",
       "\\",
     ].join("\n");
@@ -430,10 +505,8 @@ describe("parse: mixed blocks", () => {
 });
 
 describe("parse: unknown block type", () => {
-  test("unknown block opener is treated as plain text", () => {
+  test("unknown block-like line is treated as plain text", () => {
     const src = ["\\?", "content", "\\"].join("\n");
-    // `\?` is not a defined block. The opener becomes paragraph text;
-    // `content` joins it; the lone `\` closer line is also plain text.
     const result = parse(src);
     expect(result.children[0]?.type).toBe("paragraph");
   });

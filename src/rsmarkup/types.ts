@@ -32,7 +32,7 @@ export type CodeBlock = {
   content: string;
 };
 
-export type Inline = Text | Link | LineBreak;
+export type Inline = Text | Link | LineBreak | InlineCode;
 
 export type Text = {
   type: "text";
@@ -47,4 +47,9 @@ export type Link = {
 
 export type LineBreak = {
   type: "lineBreak";
+};
+
+export type InlineCode = {
+  type: "inlineCode";
+  value: string;
 };

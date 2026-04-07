@@ -1,5 +1,8 @@
 import { css } from "hono/css";
+import { raw } from "hono/html";
 import type { FC } from "hono/jsx";
+import { parse } from "../rsmarkup/parse";
+import { render } from "../rsmarkup/render";
 import { Header } from "./header";
 import { Layout } from "./layout";
 
@@ -39,14 +42,13 @@ export const PostPage: FC<PostPageProps> = ({ post }) => {
             </time>
           )}
         </p>
-        <p
+        <div
           class={css`
             margin-top: var(--space-y-lg);
-            white-space: pre-wrap;
           `}
         >
-          {post.body}
-        </p>
+          {raw(render(parse(post.body)))}
+        </div>
       </div>
     </Layout>
   );

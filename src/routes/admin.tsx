@@ -7,6 +7,7 @@ import { nanoid } from "nanoid/non-secure";
 import { z } from "zod";
 import { type AppBindings, database } from "../db/client";
 import { post as postTable } from "../db/schema";
+import { PostPage } from "../ui/post-page";
 
 const formControl = css`
   display: flex;
@@ -36,6 +37,18 @@ const PostEditor: FC<{
       `}
     >
       <a href={"/admin/posts"}>back to posts</a>
+      {post.slug && (
+        <>
+          {" / "}
+          <a
+            href={`/admin/posts/${post.slug}/preview`}
+            target={"_blank"}
+            rel={"noopener noreferrer"}
+          >
+            preview
+          </a>
+        </>
+      )}
       <form
         method={"POST"}
         class={css`
@@ -149,6 +162,30 @@ adminRoutes.get("/posts", async (c) => {
         </ul>
       </div>
     </div>,
+  );
+});
+
+adminRoutes.get("/posts/:slug/preview", async (c) => {
+  const slug = c.req.param("slug");
+  const db = database(c.env.DB);
+  const [p] = await db.select().from(postTable).where(eq(postTable.slug, slug));
+
+  if (!p) {
+    return c.notFound();
+  }
+
+  return c.render(
+    <PostPage
+      post={{
+        title: p.title,
+        slug: p.slug,
+        body: p.body,
+        publishedAt: p.publishedAt,
+      }}
+    />,
+    {
+      title: `[preview] ${p.title} | text.sushidesu.com`,
+    },
   );
 });
 

@@ -1,10 +1,26 @@
 import type { Block, Document, Heading, Inline, ListItem } from "./types";
 
 const INLINE_TYPES = new Set(["@", "!"]);
-const BLOCK_LIST_OPEN = "\\-";
-const BLOCK_CLOSE = "\\";
-const BLOCK_CODE_RE = /^\\!(?: (.*))?$/;
+const BLOCK_OPEN_RE = /^(\\+)([!-])(?: (.*))?$/;
 const HEADING_LINE_RE = /^\\([1-6]) (.+) \\$/;
+
+type BlockOpen = {
+  fence: string;
+  blockType: "!" | "-";
+  param: string;
+};
+
+const matchBlockOpen = (line: string): BlockOpen | null => {
+  if (line.includes(" \\")) return null;
+  const m = line.match(BLOCK_OPEN_RE);
+  if (!m) return null;
+  const fence = m[1] ?? "";
+  const blockType = m[2] as "!" | "-";
+  const param = m[3];
+  // List does not accept a parameter
+  if (blockType === "-" && param !== undefined) return null;
+  return { fence, blockType, param: param ?? "" };
+};
 
 export const parse = (source: string): Document => {
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
@@ -19,36 +35,30 @@ export const parse = (source: string): Document => {
       continue;
     }
 
-    if (line === BLOCK_LIST_OPEN) {
-      i++;
-      const items: ListItem[] = [];
-      while (i < lines.length && lines[i] !== BLOCK_CLOSE) {
-        const l = lines[i] ?? "";
-        if (l !== "") {
-          items.push({ type: "listItem", children: parseInline(l) });
-        }
-        i++;
-      }
-      if (i < lines.length) i++;
-      blocks.push({ type: "list", items });
-      continue;
-    }
-
-    const codeMatch = !line.includes(" \\") ? line.match(BLOCK_CODE_RE) : null;
-    if (codeMatch) {
-      const lang = codeMatch[1] ?? "";
+    const open = matchBlockOpen(line);
+    if (open) {
       i++;
       const contentLines: string[] = [];
-      while (i < lines.length && lines[i] !== BLOCK_CLOSE) {
+      while (i < lines.length && lines[i] !== open.fence) {
         contentLines.push(lines[i] ?? "");
         i++;
       }
       if (i < lines.length) i++;
-      blocks.push({
-        type: "code",
-        lang,
-        content: contentLines.join("\n"),
-      });
+      if (open.blockType === "!") {
+        blocks.push({
+          type: "code",
+          lang: open.param,
+          content: contentLines.join("\n"),
+        });
+      } else {
+        const items: ListItem[] = [];
+        for (const l of contentLines) {
+          if (l !== "") {
+            items.push({ type: "listItem", children: parseInline(l) });
+          }
+        }
+        blocks.push({ type: "list", items });
+      }
       continue;
     }
 
@@ -68,8 +78,7 @@ export const parse = (source: string): Document => {
     while (i < lines.length) {
       const l = lines[i] ?? "";
       if (l === "") break;
-      if (l === BLOCK_LIST_OPEN) break;
-      if (!l.includes(" \\") && BLOCK_CODE_RE.test(l)) break;
+      if (matchBlockOpen(l)) break;
       if (HEADING_LINE_RE.test(l)) break;
       paraLines.push(l);
       i++;

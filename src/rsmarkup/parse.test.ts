@@ -440,6 +440,79 @@ describe("parse: code block", () => {
   });
 });
 
+describe("parse: variable fence (code block)", () => {
+  test("depth-2 code block contains a literal backslash line", () => {
+    const src = ["\\\\!", "\\TYPE", "content", "\\", "\\\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "code",
+        lang: "",
+        content: "\\TYPE\ncontent\n\\",
+      }),
+    );
+  });
+
+  test("depth-2 code block with language", () => {
+    const src = ["\\\\! ts", "\\", "\\\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "code",
+        lang: "ts",
+        content: "\\",
+      }),
+    );
+  });
+
+  test("depth-3 code block", () => {
+    const src = ["\\\\\\!", "\\\\", "x", "\\\\\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "code",
+        lang: "",
+        content: "\\\\\nx",
+      }),
+    );
+  });
+
+  test("depth-1 closer inside depth-2 block is content", () => {
+    const src = ["\\\\!", "\\", "\\", "\\\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "code",
+        lang: "",
+        content: "\\\n\\",
+      }),
+    );
+  });
+
+  test("depth-2 code block auto-closes at EOF", () => {
+    const src = ["\\\\!", "x"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "code",
+        lang: "",
+        content: "x",
+      }),
+    );
+  });
+});
+
+describe("parse: variable fence (list block)", () => {
+  test("depth-2 list with literal backslash item", () => {
+    const src = ["\\\\-", "a", "\\", "b", "\\\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "list",
+        items: [
+          { type: "listItem", children: [{ type: "text", value: "a" }] },
+          { type: "listItem", children: [{ type: "text", value: "\\" }] },
+          { type: "listItem", children: [{ type: "text", value: "b" }] },
+        ],
+      }),
+    );
+  });
+});
+
 describe("parse: mixed blocks", () => {
   test("heading, paragraph, list, code in sequence", () => {
     const src = [

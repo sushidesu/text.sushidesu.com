@@ -72,6 +72,7 @@ export const PostPage: FC<PostPageProps> = ({ post }) => {
             a {
               color: inherit;
               text-decoration: underline;
+              overflow-wrap: anywhere;
             }
             a:hover {
               color: var(--color-link-hover);

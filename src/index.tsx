@@ -53,7 +53,10 @@ app.get("/", async (c) => {
         </article>
       </div>
     </Layout>,
-    { title: "text.sushidesu.com" },
+    {
+      title: "text.sushidesu.com",
+      description: "sushidesu's third blog",
+    },
   );
 });
 

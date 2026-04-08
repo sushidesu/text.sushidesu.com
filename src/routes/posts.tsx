@@ -2,6 +2,8 @@ import { and, eq, isNotNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { type AppBindings, database } from "../db/client";
 import { post } from "../db/schema";
+import { siteUrl } from "../renderer";
+import { excerpt } from "../rsmarkup/textify";
 import { PostPage } from "../ui/post-page";
 
 export const postsRoutes = new Hono<{ Bindings: AppBindings }>();
@@ -29,6 +31,9 @@ postsRoutes.get("/:slug", async (c) => {
     />,
     {
       title: `${p.title} | text.sushidesu.com`,
+      description: excerpt(p.body),
+      url: `${siteUrl}/posts/${p.slug}`,
+      type: "article",
     },
   );
 });

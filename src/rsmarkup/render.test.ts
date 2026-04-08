@@ -65,6 +65,12 @@ describe("render", () => {
     expect(r("\\! <div> \\")).toBe("<p><code>&lt;div&gt;</code></p>");
   });
 
+  test("depth-2 inline code renders escaped content", () => {
+    expect(r("\\\\! \\2 見出し \\ \\\\")).toBe(
+      "<p><code>\\2 見出し \\</code></p>",
+    );
+  });
+
   test("list", () => {
     const src = ["\\-", "a", "b", "\\"].join("\n");
     expect(r(src)).toBe("<ul><li>a</li><li>b</li></ul>");

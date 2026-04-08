@@ -302,6 +302,68 @@ describe("parse: inline code", () => {
   });
 });
 
+describe("parse: variable fence (inline)", () => {
+  test("depth-2 inline code contains a literal depth-1 closer", () => {
+    expect(parse("\\\\! \\2 見出し \\ \\\\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [{ type: "inlineCode", value: "\\2 見出し \\" }],
+      }),
+    );
+  });
+
+  test("depth-2 inline link contains a literal depth-1 closer", () => {
+    expect(parse("\\\\@ https://example.com \\ \\\\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [
+          {
+            type: "link",
+            url: "https://example.com",
+            label: "\\",
+          },
+        ],
+      }),
+    );
+  });
+
+  test("depth-3 inline code contains literal depth-2 content", () => {
+    expect(parse("\\\\\\! \\\\! code \\ \\\\ \\\\\\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [{ type: "inlineCode", value: "\\\\! code \\ \\\\" }],
+      }),
+    );
+  });
+
+  test("depth-1 closer is not confused by a literal double backslash", () => {
+    expect(parse("\\! a\\\\b \\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [{ type: "inlineCode", value: "a\\\\b" }],
+      }),
+    );
+  });
+
+  test("depth-2 inline code inside a list item", () => {
+    const src = ["\\-", "見出し \\\\! \\2 見出し \\ \\\\", "\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "list",
+        items: [
+          {
+            type: "listItem",
+            children: [
+              { type: "text", value: "見出し " },
+              { type: "inlineCode", value: "\\2 見出し \\" },
+            ],
+          },
+        ],
+      }),
+    );
+  });
+});
+
 describe("parse: unknown inline type", () => {
   test("unknown inline TYPE char is treated as literal text", () => {
     expect(parse("\\x foo \\")).toEqual(

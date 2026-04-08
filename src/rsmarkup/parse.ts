@@ -107,53 +107,59 @@ const parseInline = (s: string): Inline[] => {
   };
 
   while (i < s.length) {
-    const c = s[i];
-    const next = s[i + 1];
-    if (
-      c === "\\" &&
-      next !== undefined &&
-      INLINE_TYPES.has(next) &&
-      s[i + 2] === " "
-    ) {
-      const typeChar = next;
-      const closeIdx = findClose(s, i + 3);
-      if (closeIdx !== -1) {
-        const content = s.slice(i + 3, closeIdx);
-        if (content !== "") {
-          if (typeChar === "@") {
-            const spaceIdx = content.indexOf(" ");
-            const url = spaceIdx === -1 ? content : content.slice(0, spaceIdx);
-            const label = spaceIdx === -1 ? url : content.slice(spaceIdx + 1);
-            flushBuf();
-            result.push({
-              type: "link",
-              url,
-              label: label === "" ? url : label,
-            });
-            i = closeIdx + 2;
-            continue;
-          }
-          if (typeChar === "!") {
-            flushBuf();
-            result.push({ type: "inlineCode", value: content });
-            i = closeIdx + 2;
-            continue;
+    if (s[i] === "\\") {
+      let n = 0;
+      while (s[i + n] === "\\") n++;
+      const typeChar = s[i + n];
+      if (
+        typeChar !== undefined &&
+        INLINE_TYPES.has(typeChar) &&
+        s[i + n + 1] === " "
+      ) {
+        const contentStart = i + n + 2;
+        const closeIdx = findCloseN(s, contentStart, n);
+        if (closeIdx !== -1) {
+          const content = s.slice(contentStart, closeIdx);
+          if (content !== "") {
+            if (typeChar === "@") {
+              const spaceIdx = content.indexOf(" ");
+              const url =
+                spaceIdx === -1 ? content : content.slice(0, spaceIdx);
+              const label = spaceIdx === -1 ? url : content.slice(spaceIdx + 1);
+              flushBuf();
+              result.push({
+                type: "link",
+                url,
+                label: label === "" ? url : label,
+              });
+              i = closeIdx + 1 + n;
+              continue;
+            }
+            if (typeChar === "!") {
+              flushBuf();
+              result.push({ type: "inlineCode", value: content });
+              i = closeIdx + 1 + n;
+              continue;
+            }
           }
         }
       }
     }
-    buf += c;
+    buf += s[i];
     i++;
   }
   flushBuf();
   return result;
 };
 
-const findClose = (s: string, from: number): number => {
-  for (let j = from; j < s.length - 1; j++) {
-    if (s[j] === " " && s[j + 1] === "\\") {
-      return j;
-    }
+// Find the index of " " followed by exactly n consecutive backslashes
+// (the character after the n-th backslash is not another backslash).
+const findCloseN = (s: string, from: number, n: number): number => {
+  for (let j = from; j < s.length; j++) {
+    if (s[j] !== " ") continue;
+    let k = 0;
+    while (s[j + 1 + k] === "\\") k++;
+    if (k === n) return j;
   }
   return -1;
 };

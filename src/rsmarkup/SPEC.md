@@ -33,6 +33,13 @@
 - 終了: スペース + バックスラッシュ
 - 同一行内で完結する
 - 閉じが見つからない、または content が空の場合は素通し (リテラル)
+- **可変フェンス**: opener の `\` を N 個に増やすと depth N のコマンドになる
+  - depth 1: `\X content \`
+  - depth 2: `\\X content \\`
+  - depth 3: `\\\X content \\\`
+  - closer は「スペース + ちょうど N 個の `\` (次が `\` 以外または行末)」
+  - depth N の content には depth (N-1) までの closer を含められる
+  - content 中に rsmarkup 記法を混ぜたいときに使う (例: `\\! \2 見出し \ \\`)
 
 ### リンク `\@`
 

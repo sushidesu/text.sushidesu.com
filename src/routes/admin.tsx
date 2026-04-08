@@ -9,14 +9,181 @@ import { type AppBindings, database } from "../db/client";
 import { post as postTable } from "../db/schema";
 import { PostPage } from "../ui/post-page";
 
-const formControl = css`
+const adminPage = css`
+  min-height: 100vh;
+  background: #ffffff;
+  color: #111827;
+`;
+
+const adminHeader = css`
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const adminHeaderInner = css`
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+  height: 4rem;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-y-sm);
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const backLink = css`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  &:hover {
+    color: #111827;
+  }
+`;
+
+const actionGroup = css`
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+`;
+
+const actionLink = css`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+  text-decoration: none;
+  &:hover {
+    color: #111827;
+  }
+`;
+
+const previewButton = css`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  &:hover {
+    color: #111827;
+  }
+`;
+
+const verticalDivider = css`
+  width: 1px;
+  height: 1rem;
+  background: #d1d5db;
+`;
+
+const deleteButton = css`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #dc2626;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  &:hover {
+    color: #991b1b;
+  }
+`;
+
+const publishButton = css`
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: #111827;
+  color: #ffffff;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  &:hover {
+    background: #1f2937;
+  }
+`;
+
+const adminMain = css`
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+`;
+
+const fieldGrid = css`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const fullColumn = css`
+  grid-column: 1 / -1;
+`;
+
+const fieldLabel = css`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.375rem;
 `;
 
 const textInput = css`
-  padding: var(--space-y-sm) var(--space-x-sm);
+  display: block;
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  background: #ffffff;
+  color: inherit;
+  font-family: inherit;
+  &:focus {
+    outline: none;
+    border-color: #111827;
+    box-shadow: 0 0 0 1px #111827;
+  }
+`;
+
+const textArea = css`
+  display: block;
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  background: #ffffff;
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.625;
+  resize: vertical;
+  field-sizing: content;
+  min-height: 60vh;
+  &:focus {
+    outline: none;
+    border-color: #111827;
+    box-shadow: 0 0 0 1px #111827;
+  }
+`;
+
+const hintText = css`
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+`;
+
+const bodySection = css`
+  margin-top: 2rem;
 `;
 
 type PostFormValue = {
@@ -26,74 +193,114 @@ type PostFormValue = {
   publishedAt: Date | null;
 };
 
+const POST_FORM_ID = "post-form";
+const DELETE_FORM_ID = "delete-form";
+
 const PostEditor: FC<{
   post: PostFormValue;
   error?: Record<string, string[] | undefined>;
 }> = ({ post }) => {
+  const hasSlug = post.slug !== "";
   return (
-    <div
-      class={css`
-        padding: var(--space-y-md) var(--space-x-md);
-      `}
-    >
-      <a href={"/admin/posts"}>back to posts</a>
-      {post.slug && (
-        <>
-          {" / "}
-          <a
-            href={`/admin/posts/${post.slug}/preview`}
-            target={"_blank"}
-            rel={"noopener noreferrer"}
-          >
-            preview
+    <div class={adminPage}>
+      <header class={adminHeader}>
+        <div class={adminHeaderInner}>
+          <a href={"/admin/posts"} class={backLink}>
+            ← Back to posts
           </a>
-        </>
-      )}
-      <form
-        method={"POST"}
-        class={css`
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-y-md);
-        `}
-      >
-        <div class={formControl}>
-          <label>title</label>
-          <input class={textInput} name={"title"} value={post.title} />
+          <div class={actionGroup}>
+            <button
+              type={"submit"}
+              form={POST_FORM_ID}
+              formaction={"/admin/posts/preview"}
+              formmethod={"post"}
+              formtarget={"_blank"}
+              formnovalidate
+              class={previewButton}
+            >
+              Preview
+            </button>
+            {hasSlug && (
+              <>
+                <span class={verticalDivider} />
+                <button
+                  type={"submit"}
+                  form={DELETE_FORM_ID}
+                  class={deleteButton}
+                >
+                  Delete
+                </button>
+              </>
+            )}
+            <button type={"submit"} form={POST_FORM_ID} class={publishButton}>
+              Save
+            </button>
+          </div>
         </div>
-        <div class={formControl}>
-          <label>slug</label>
-          <input class={textInput} name={"slug"} value={post.slug} />
-        </div>
-        <div class={formControl}>
-          <label>body</label>
-          <textarea class={textInput} name={"body"} rows={10}>
-            {post.body}
-          </textarea>
-        </div>
-        <div class={formControl}>
-          <label>publishedAt (empty = unpublished)</label>
-          <input
-            class={textInput}
-            name={"publishedAt"}
-            type={"datetime-local"}
-            value={
-              post.publishedAt
-                ? formatDatetimeLocal(post.publishedAt)
-                : undefined
-            }
+      </header>
+
+      <main class={adminMain}>
+        <form id={POST_FORM_ID} method={"POST"}>
+          <div class={fieldGrid}>
+            <div class={fullColumn}>
+              <label class={fieldLabel} for={"title"}>
+                Title
+              </label>
+              <input
+                id={"title"}
+                class={textInput}
+                name={"title"}
+                value={post.title}
+              />
+            </div>
+            <div>
+              <label class={fieldLabel} for={"slug"}>
+                Slug
+              </label>
+              <input
+                id={"slug"}
+                class={textInput}
+                name={"slug"}
+                value={post.slug}
+              />
+            </div>
+            <div>
+              <label class={fieldLabel} for={"publishedAt"}>
+                Publish Date
+              </label>
+              <input
+                id={"publishedAt"}
+                class={textInput}
+                name={"publishedAt"}
+                type={"datetime-local"}
+                value={
+                  post.publishedAt
+                    ? formatDatetimeLocal(post.publishedAt)
+                    : undefined
+                }
+              />
+              <p class={hintText}>Leave blank to keep as draft</p>
+            </div>
+          </div>
+
+          <div class={bodySection}>
+            <label class={fieldLabel} for={"body"}>
+              Content
+            </label>
+            <textarea id={"body"} class={textArea} name={"body"} rows={20}>
+              {post.body}
+            </textarea>
+          </div>
+        </form>
+
+        {hasSlug && (
+          <form
+            id={DELETE_FORM_ID}
+            method={"POST"}
+            action={`/admin/posts/${post.slug}/delete`}
           />
-        </div>
-        <div>
-          <button type={"submit"}>POST</button>
-        </div>
-      </form>
-
-      <hr />
-
-      <form method={"POST"} action={`/admin/posts/${post.slug}/delete`}>
-        <button type={"submit"}>DELETE</button>
-      </form>
+        )}
+      </main>
     </div>
   );
 };
@@ -125,68 +332,99 @@ adminRoutes.get("/posts", async (c) => {
     );
 
   return c.render(
-    <div
-      class={css`
-        padding: var(--space-y-md) var(--space-x-md);
-      `}
-    >
-      <h1>Hello Admin</h1>
-      <div
-        class={css`
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-y-md);
-        `}
-      >
-        <a href={"/admin/posts/new"}>Create New</a>
+    <div class={adminPage}>
+      <header class={adminHeader}>
+        <div class={adminHeaderInner}>
+          <span
+            class={css`
+              font-size: 0.875rem;
+              font-weight: 600;
+              color: #111827;
+            `}
+          >
+            Posts
+          </span>
+          <a href={"/admin/posts/new"} class={publishButton}>
+            New post
+          </a>
+        </div>
+      </header>
+      <main class={adminMain}>
         <ul
           class={css`
+            list-style: none;
+            padding: 0;
+            margin: 0;
             display: flex;
             flex-direction: column;
-            gap: var(--space-y-sm);
+            border-top: 1px solid #e5e7eb;
           `}
         >
           {posts.map((p) => (
             <li
               key={p.slug}
               class={css`
-                display: flex;
-                flex-direction: row;
-                gap: var(--space-x-sm);
+                border-bottom: 1px solid #e5e7eb;
               `}
             >
-              <a href={`/admin/posts/${p.slug}`}>{p.title}</a>
-              {p.publishedAt && <p>PUBLISHED</p>}
+              <a
+                href={`/admin/posts/${p.slug}`}
+                class={css`
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 1rem;
+                  padding: 0.875rem 0.25rem;
+                  font-size: 0.875rem;
+                  color: #111827;
+                  text-decoration: none;
+                  &:hover {
+                    background: #f9fafb;
+                  }
+                `}
+              >
+                <span>{p.title}</span>
+                {p.publishedAt ? (
+                  <span
+                    class={css`
+                      font-size: 0.75rem;
+                      color: #16a34a;
+                      font-weight: 500;
+                    `}
+                  >
+                    PUBLISHED
+                  </span>
+                ) : (
+                  <span
+                    class={css`
+                      font-size: 0.75rem;
+                      color: #9ca3af;
+                      font-weight: 500;
+                    `}
+                  >
+                    DRAFT
+                  </span>
+                )}
+              </a>
             </li>
           ))}
         </ul>
-      </div>
+      </main>
     </div>,
   );
 });
 
-adminRoutes.get("/posts/:slug/preview", async (c) => {
-  const slug = c.req.param("slug");
-  const db = database(c.env.DB);
-  const [p] = await db.select().from(postTable).where(eq(postTable.slug, slug));
+adminRoutes.post("/posts/preview", async (c) => {
+  const formData = await c.req.formData();
+  const title = String(formData.get("title") ?? "");
+  const slug = String(formData.get("slug") ?? "");
+  const body = String(formData.get("body") ?? "");
+  const publishedAtStr = String(formData.get("publishedAt") ?? "");
+  const publishedAt = publishedAtStr ? new Date(publishedAtStr) : null;
 
-  if (!p) {
-    return c.notFound();
-  }
-
-  return c.render(
-    <PostPage
-      post={{
-        title: p.title,
-        slug: p.slug,
-        body: p.body,
-        publishedAt: p.publishedAt,
-      }}
-    />,
-    {
-      title: `[preview] ${p.title} | text.sushidesu.com`,
-    },
-  );
+  return c.render(<PostPage post={{ title, slug, body, publishedAt }} />, {
+    title: `[preview] ${title || "untitled"} | text.sushidesu.com`,
+  });
 });
 
 adminRoutes.get("/posts/:slug", async (c) => {

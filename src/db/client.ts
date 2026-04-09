@@ -4,8 +4,10 @@ import type * as schema from "./schema";
 
 export type AppBindings = {
   DB: D1Database;
+  ASSETS: R2Bucket;
+  ASSET_BASE_URL: string;
 };
 
-type DB = BaseSQLiteDatabase<"async", unknown, typeof schema>;
+export type DB = BaseSQLiteDatabase<"async", unknown, typeof schema>;
 
 export const database = (db: D1Database): DB => drizzle(db);

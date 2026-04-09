@@ -1,4 +1,22 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const image = sqliteTable(
+  "image",
+  {
+    id: text("image_id").primaryKey(),
+    key: text("key").notNull().unique(),
+    key2x: text("key_2x"),
+    mimeType: text("mime_type").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    size: integer("size").notNull(),
+    originalFilename: text("original_filename"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => ({
+    createdAtIdx: index("image_created_at_idx").on(t.createdAt),
+  }),
+);
 
 export const post = sqliteTable("post", {
   id: text("post_id").primaryKey(),

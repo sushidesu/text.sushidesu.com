@@ -1,0 +1,12 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": ["https://text.sushidesu.com"],
+        "methods": ["GET"],
+        "headers": ["*"]
+      },
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

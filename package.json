@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "migrate:generate": "drizzle-kit generate:sqlite",
-    "migrate:apply": "wrangler d1 migrations apply DB --local --persist-to .wrangler/state/v3"
+    "migrate:apply": "wrangler d1 migrations apply DB --local"
   },
   "private": true,
   "dependencies": {

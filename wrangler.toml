@@ -8,3 +8,10 @@ binding = "DB"
 database_name = "note-sushidesu-com"
 database_id = "878221ad-1628-4e71-822d-43a2695ee3c4"
 migrations_dir = "./migration"
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "text-sushidesu-com-assets"
+
+[vars]
+ASSET_BASE_URL = "https://assets.text.sushidesu.com"

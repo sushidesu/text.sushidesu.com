@@ -6,6 +6,7 @@ import { type AppBindings, database } from "./db/client";
 import { post } from "./db/schema";
 import { renderer } from "./renderer";
 import { adminRoutes } from "./routes/admin";
+import { imagesRoutes } from "./routes/images";
 import { postsRoutes } from "./routes/posts";
 import { Header } from "./ui/header";
 import { Layout } from "./ui/layout";
@@ -60,7 +61,21 @@ app.get("/", async (c) => {
   );
 });
 
+// R2 asset proxy (used in local dev, fallback in production)
+app.get("/assets/:key{.+}", async (c) => {
+  const key = c.req.param("key");
+  const object = await c.env.ASSETS.get(key);
+  if (!object) return c.notFound();
+  c.header(
+    "Content-Type",
+    object.httpMetadata?.contentType ?? "application/octet-stream",
+  );
+  c.header("Cache-Control", "public, max-age=31536000, immutable");
+  return c.body(object.body);
+});
+
 app.route("/posts", postsRoutes);
+app.route("/admin/images", imagesRoutes);
 app.route("/admin", adminRoutes);
 
 export default app;

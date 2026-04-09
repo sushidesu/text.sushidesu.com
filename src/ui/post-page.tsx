@@ -1,8 +1,6 @@
 import { css } from "hono/css";
 import { raw } from "hono/html";
 import type { FC } from "hono/jsx";
-import { parse } from "../rsmarkup/parse";
-import { render } from "../rsmarkup/render";
 import { Header } from "./header";
 import { Layout } from "./layout";
 
@@ -10,7 +8,7 @@ type PostPageProps = {
   post: {
     title: string;
     slug: string;
-    body: string;
+    bodyHtml: string;
     publishedAt: Date | null;
   };
 };
@@ -100,12 +98,29 @@ export const PostPage: FC<PostPageProps> = ({ post }) => {
               font-size: 0.9em;
             }
 
+            figure {
+              margin-top: var(--space-y-md);
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+            }
+            figure img {
+              max-width: 100%;
+              height: auto;
+              border-radius: 4px;
+            }
+            figcaption {
+              margin-top: var(--space-y-sm);
+              font-size: 0.875rem;
+              color: #6b7280;
+            }
+
             > *:first-child {
               margin-top: 0;
             }
           `}
         >
-          {raw(render(parse(post.body)))}
+          {raw(post.bodyHtml)}
         </div>
       </div>
     </Layout>

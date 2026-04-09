@@ -7,6 +7,7 @@ import { nanoid } from "nanoid/non-secure";
 import { z } from "zod";
 import { type AppBindings, database } from "../db/client";
 import { post as postTable } from "../db/schema";
+import { renderPostBody } from "../post/render-body";
 import { PostPage } from "../ui/post-page";
 
 const adminPage = css`
@@ -344,9 +345,14 @@ adminRoutes.get("/posts", async (c) => {
           >
             Posts
           </span>
-          <a href={"/admin/posts/new"} class={publishButton}>
-            New post
-          </a>
+          <div class={actionGroup}>
+            <a href={"/admin/images"} class={actionLink}>
+              Images
+            </a>
+            <a href={"/admin/posts/new"} class={publishButton}>
+              New post
+            </a>
+          </div>
         </div>
       </header>
       <main class={adminMain}>
@@ -422,7 +428,10 @@ adminRoutes.post("/posts/preview", async (c) => {
   const publishedAtStr = String(formData.get("publishedAt") ?? "");
   const publishedAt = publishedAtStr ? new Date(publishedAtStr) : null;
 
-  return c.render(<PostPage post={{ title, slug, body, publishedAt }} />, {
+  const db = database(c.env.DB);
+  const bodyHtml = await renderPostBody(body, db, c.env.ASSET_BASE_URL);
+
+  return c.render(<PostPage post={{ title, slug, bodyHtml, publishedAt }} />, {
     title: `[preview] ${title || "untitled"} | text.sushidesu.com`,
   });
 });

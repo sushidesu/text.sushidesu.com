@@ -32,6 +32,11 @@ describe("excerpt", () => {
     expect(excerpt("use \\! hoge \\ please")).toBe("use hoge please");
   });
 
+  test("image alt is included", () => {
+    const src = ["intro", "", "\\i abc123 説明文", "\\"].join("\n");
+    expect(excerpt(src)).toBe("intro 説明文");
+  });
+
   test("truncates to max length with ellipsis", () => {
     const long = "a".repeat(200);
     const result = excerpt(long, 50);

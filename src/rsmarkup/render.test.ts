@@ -121,6 +121,46 @@ describe("render", () => {
     expect(r(src)).toBe("<pre><code>&lt;div&gt;&amp;&lt;/div&gt;</code></pre>");
   });
 
+  test("inline image", () => {
+    expect(r("\\i abc123 alt \\")).toBe(
+      '<p><img src="abc123" alt="alt" loading="lazy"></p>',
+    );
+  });
+
+  test("inline image without alt", () => {
+    expect(r("\\i abc123 \\")).toBe(
+      '<p><img src="abc123" alt="" loading="lazy"></p>',
+    );
+  });
+
+  test("image without caption", () => {
+    const src = ["\\i abc123 説明", "\\"].join("\n");
+    expect(r(src)).toBe(
+      '<figure><img src="abc123" alt="説明" loading="lazy"></figure>',
+    );
+  });
+
+  test("image with caption", () => {
+    const src = ["\\i abc123 説明", "キャプション", "\\"].join("\n");
+    expect(r(src)).toBe(
+      '<figure><img src="abc123" alt="説明" loading="lazy"><figcaption>キャプション</figcaption></figure>',
+    );
+  });
+
+  test("image with displayWidth", () => {
+    const src = ["\\i abc123 w=50% 説明", "\\"].join("\n");
+    expect(r(src)).toBe(
+      '<figure><img src="abc123" alt="説明" style="max-width:50%;height:auto" loading="lazy"></figure>',
+    );
+  });
+
+  test("image escapes html in src and alt", () => {
+    const src = ['\\i a"b <x>', "\\"].join("\n");
+    expect(r(src)).toBe(
+      '<figure><img src="a&quot;b" alt="&lt;x&gt;" loading="lazy"></figure>',
+    );
+  });
+
   test("mixed document", () => {
     const src = [
       "\\1 タイトル \\",

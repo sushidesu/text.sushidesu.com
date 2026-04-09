@@ -13,6 +13,8 @@ const inlineToText = (nodes: Inline[]): string =>
           return n.label;
         case "inlineCode":
           return n.value;
+        case "inlineImage":
+          return n.alt;
       }
     })
     .join("");
@@ -27,6 +29,8 @@ const blockToText = (block: Block): string => {
       return block.items.map((it) => inlineToText(it.children)).join(" ");
     case "code":
       return block.content;
+    case "image":
+      return block.alt;
   }
 };
 

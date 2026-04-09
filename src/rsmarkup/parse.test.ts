@@ -639,6 +639,208 @@ describe("parse: mixed blocks", () => {
   });
 });
 
+describe("parse: inline image", () => {
+  test("inline image with src only", () => {
+    expect(parse("\\i abc123 \\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [
+          { type: "inlineImage", src: "abc123", alt: "", options: {} },
+        ],
+      }),
+    );
+  });
+
+  test("inline image with alt text", () => {
+    expect(parse("\\i abc123 スクショ \\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [
+          { type: "inlineImage", src: "abc123", alt: "スクショ", options: {} },
+        ],
+      }),
+    );
+  });
+
+  test("inline image surrounded by text", () => {
+    expect(parse("前 \\i abc123 画像 \\ 後")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [
+          { type: "text", value: "前 " },
+          { type: "inlineImage", src: "abc123", alt: "画像", options: {} },
+          { type: "text", value: " 後" },
+        ],
+      }),
+    );
+  });
+
+  test("inline image with multi-word alt", () => {
+    expect(parse("\\i abc123 hello world \\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [
+          {
+            type: "inlineImage",
+            src: "abc123",
+            alt: "hello world",
+            options: {},
+          },
+        ],
+      }),
+    );
+  });
+
+  test("inline image with option after alt", () => {
+    expect(parse("\\i abc123 画像 w=50% \\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [
+          {
+            type: "inlineImage",
+            src: "abc123",
+            alt: "画像",
+            options: { displayWidth: "50%" },
+          },
+        ],
+      }),
+    );
+  });
+
+  test("inline image with displayWidth option", () => {
+    expect(parse("\\i abc123 w=50% 画像 \\")).toEqual(
+      doc({
+        type: "paragraph",
+        children: [
+          {
+            type: "inlineImage",
+            src: "abc123",
+            alt: "画像",
+            options: { displayWidth: "50%" },
+          },
+        ],
+      }),
+    );
+  });
+});
+
+describe("parse: image block", () => {
+  test("image with alt and caption", () => {
+    const src = ["\\i abc123 説明", "キャプション", "\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "image",
+        src: "abc123",
+        alt: "説明",
+        options: {},
+        caption: [{ type: "text", value: "キャプション" }],
+      }),
+    );
+  });
+
+  test("image without alt", () => {
+    const src = ["\\i abc123", "\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({ type: "image", src: "abc123", alt: "", options: {}, caption: [] }),
+    );
+  });
+
+  test("image with multi-word alt", () => {
+    const src = ["\\i abc123 hello world", "\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "image",
+        src: "abc123",
+        alt: "hello world",
+        options: {},
+        caption: [],
+      }),
+    );
+  });
+
+  test("image with displayWidth option", () => {
+    const src = ["\\i abc123 w=50% 説明", "\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "image",
+        src: "abc123",
+        alt: "説明",
+        options: { displayWidth: "50%" },
+        caption: [],
+      }),
+    );
+  });
+
+  test("image with multi-line caption produces line breaks", () => {
+    const src = ["\\i abc123 説明", "1行目", "2行目", "\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "image",
+        src: "abc123",
+        alt: "説明",
+        options: {},
+        caption: [
+          { type: "text", value: "1行目" },
+          { type: "lineBreak" },
+          { type: "text", value: "2行目" },
+        ],
+      }),
+    );
+  });
+
+  test("image caption supports inline link", () => {
+    const src = [
+      "\\i abc123 説明",
+      "出典: \\@ https://example.com ex \\",
+      "\\",
+    ].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "image",
+        src: "abc123",
+        alt: "説明",
+        options: {},
+        caption: [
+          { type: "text", value: "出典: " },
+          { type: "link", url: "https://example.com", label: "ex" },
+        ],
+      }),
+    );
+  });
+
+  test("image without src is not an image (paragraph fallback)", () => {
+    const src = ["\\i", "x", "\\"].join("\n");
+    const result = parse(src);
+    expect(result.children[0]?.type).toBe("paragraph");
+  });
+
+  test("image src is opaque (URL accepted as-is)", () => {
+    const src = ["\\i https://example.com/x.webp", "\\"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "image",
+        src: "https://example.com/x.webp",
+        alt: "",
+        options: {},
+        caption: [],
+      }),
+    );
+  });
+
+  test("image without closing backslash auto-closes at EOF", () => {
+    const src = ["\\i abc123 説明", "cap"].join("\n");
+    expect(parse(src)).toEqual(
+      doc({
+        type: "image",
+        src: "abc123",
+        alt: "説明",
+        options: {},
+        caption: [{ type: "text", value: "cap" }],
+      }),
+    );
+  });
+});
+
 describe("parse: unknown block type", () => {
   test("unknown block-like line is treated as plain text", () => {
     const src = ["\\?", "content", "\\"].join("\n");

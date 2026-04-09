@@ -3,6 +3,7 @@ import type {
   CodeBlock,
   Document,
   Heading,
+  Image,
   Inline,
   List,
   Paragraph,
@@ -32,6 +33,24 @@ const renderInline = (nodes: Inline[]): string =>
           )}</a>`;
         case "inlineCode":
           return `<code>${escapeHtml(n.value)}</code>`;
+        case "inlineImage": {
+          const widthAttr = n.width !== undefined ? ` width="${n.width}"` : "";
+          const heightAttr =
+            n.height !== undefined ? ` height="${n.height}"` : "";
+          const srcsetAttr = n.srcset
+            ? ` srcset="${escapeHtml(n.srcset)}"`
+            : "";
+          const styleAttr = n.options.displayWidth
+            ? ` style="max-width:${escapeHtml(
+                n.options.displayWidth,
+              )};height:auto"`
+            : "";
+          return `<img src="${escapeHtml(
+            n.src,
+          )}"${srcsetAttr} alt="${escapeHtml(
+            n.alt,
+          )}"${widthAttr}${heightAttr}${styleAttr} loading="lazy">`;
+        }
       }
     })
     .join("");
@@ -54,6 +73,25 @@ const renderCode = (c: CodeBlock): string => {
   return `<pre><code${classAttr}>${escapeHtml(c.content)}</code></pre>`;
 };
 
+const renderImage = (img: Image): string => {
+  const widthAttr = img.width !== undefined ? ` width="${img.width}"` : "";
+  const heightAttr = img.height !== undefined ? ` height="${img.height}"` : "";
+  const srcsetAttr = img.srcset ? ` srcset="${escapeHtml(img.srcset)}"` : "";
+  const styleAttr = img.options.displayWidth
+    ? ` style="max-width:${escapeHtml(img.options.displayWidth)};height:auto"`
+    : "";
+  const imgTag = `<img src="${escapeHtml(
+    img.src,
+  )}"${srcsetAttr} alt="${escapeHtml(
+    img.alt,
+  )}"${widthAttr}${heightAttr}${styleAttr} loading="lazy">`;
+  const figcaption =
+    img.caption.length > 0
+      ? `<figcaption>${renderInline(img.caption)}</figcaption>`
+      : "";
+  return `<figure>${imgTag}${figcaption}</figure>`;
+};
+
 const renderBlock = (b: Block): string => {
   switch (b.type) {
     case "paragraph":
@@ -64,6 +102,8 @@ const renderBlock = (b: Block): string => {
       return renderList(b);
     case "code":
       return renderCode(b);
+    case "image":
+      return renderImage(b);
   }
 };
 

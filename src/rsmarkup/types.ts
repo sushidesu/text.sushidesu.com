@@ -3,7 +3,7 @@ export type Document = {
   children: Block[];
 };
 
-export type Block = Paragraph | Heading | List | CodeBlock;
+export type Block = Paragraph | Heading | List | CodeBlock | Image;
 
 export type Paragraph = {
   type: "paragraph";
@@ -32,7 +32,22 @@ export type CodeBlock = {
   content: string;
 };
 
-export type Inline = Text | Link | LineBreak | InlineCode;
+export type ImageOptions = {
+  displayWidth?: string;
+};
+
+export type Image = {
+  type: "image";
+  src: string;
+  alt: string;
+  options: ImageOptions;
+  srcset?: string;
+  width?: number;
+  height?: number;
+  caption: Inline[];
+};
+
+export type Inline = Text | Link | LineBreak | InlineCode | InlineImage;
 
 export type Text = {
   type: "text";
@@ -52,4 +67,14 @@ export type LineBreak = {
 export type InlineCode = {
   type: "inlineCode";
   value: string;
+};
+
+export type InlineImage = {
+  type: "inlineImage";
+  src: string;
+  alt: string;
+  options: ImageOptions;
+  srcset?: string;
+  width?: number;
+  height?: number;
 };

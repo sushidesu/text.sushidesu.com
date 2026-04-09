@@ -1,12 +1,19 @@
-import type { Block, Document, Heading, Inline, ListItem } from "./types";
+import type {
+  Block,
+  Document,
+  Heading,
+  ImageOptions,
+  Inline,
+  ListItem,
+} from "./types";
 
-const INLINE_TYPES = new Set(["@", "!"]);
-const BLOCK_OPEN_RE = /^(\\+)([!-])(?: (.*))?$/;
+const INLINE_TYPES = new Set(["@", "!", "i"]);
+const BLOCK_OPEN_RE = /^(\\+)([!\-i])(?: (.*))?$/;
 const HEADING_LINE_RE = /^\\([1-6]) (.+) \\$/;
 
 type BlockOpen = {
   fence: string;
-  blockType: "!" | "-";
+  blockType: "!" | "-" | "i";
   param: string;
 };
 
@@ -15,11 +22,34 @@ const matchBlockOpen = (line: string): BlockOpen | null => {
   const m = line.match(BLOCK_OPEN_RE);
   if (!m) return null;
   const fence = m[1] ?? "";
-  const blockType = m[2] as "!" | "-";
+  const blockType = m[2] as "!" | "-" | "i";
   const param = m[3];
   // List does not accept a parameter
   if (blockType === "-" && param !== undefined) return null;
+  // Image requires a parameter (the src)
+  if (blockType === "i" && (param === undefined || param === "")) return null;
   return { fence, blockType, param: param ?? "" };
+};
+
+const parseImageParams = (
+  raw: string,
+): { src: string; options: ImageOptions; alt: string } => {
+  const tokens = raw.split(" ");
+  const src = tokens[0] ?? "";
+  const options: ImageOptions = {};
+  const altParts: string[] = [];
+  for (let j = 1; j < tokens.length; j++) {
+    const t = tokens[j] ?? "";
+    if (t.includes("=")) {
+      const eqIdx = t.indexOf("=");
+      const key = t.slice(0, eqIdx);
+      const val = t.slice(eqIdx + 1);
+      if (key === "w") options.displayWidth = val;
+    } else {
+      altParts.push(t);
+    }
+  }
+  return { src, options, alt: altParts.join(" ") };
 };
 
 export const parse = (source: string): Document => {
@@ -49,6 +79,24 @@ export const parse = (source: string): Document => {
           type: "code",
           lang: open.param,
           content: contentLines.join("\n"),
+        });
+      } else if (open.blockType === "i") {
+        const params = parseImageParams(open.param);
+        const captionLines: string[] = [];
+        for (const l of contentLines) {
+          if (l !== "") captionLines.push(l);
+        }
+        const caption: Inline[] = [];
+        captionLines.forEach((cl, idx) => {
+          if (idx > 0) caption.push({ type: "lineBreak" });
+          caption.push(...parseInline(cl));
+        });
+        blocks.push({
+          type: "image",
+          src: params.src,
+          alt: params.alt,
+          options: params.options,
+          caption,
         });
       } else {
         const items: ListItem[] = [];
@@ -138,6 +186,18 @@ const parseInline = (s: string): Inline[] => {
             if (typeChar === "!") {
               flushBuf();
               result.push({ type: "inlineCode", value: content });
+              i = closeIdx + 1 + n;
+              continue;
+            }
+            if (typeChar === "i") {
+              const params = parseImageParams(content);
+              flushBuf();
+              result.push({
+                type: "inlineImage",
+                src: params.src,
+                alt: params.alt,
+                options: params.options,
+              });
               i = closeIdx + 1 + n;
               continue;
             }

@@ -17,6 +17,7 @@
 | `1` 〜 `6` | インライン (行単独のみ) | 見出し |
 | `@` | インライン | リンク |
 | `!` | インライン + ブロック | コード |
+| `i` | インライン + ブロック | 画像 |
 | `-` | ブロック | リスト |
 
 ## 段落と改行
@@ -131,6 +132,27 @@ const x = 0
 
 EOF まで閉じ `\` が現れなければ、EOF で自動クローズする。
 
+### インライン画像 `\i`
+
+```
+\i src \           → alt = ""
+\i src alt文 \     → alt = "alt文"
+```
+
+content を最初のスペースで分割し、前半を src、後半を alt とする。後半が空の場合は alt = ""。
+
+### ブロック画像 `\i src`
+
+```
+\i src
+キャプション (インライン解釈、省略可)
+\
+```
+
+- `\i` 単独 (src なし) → ブロックとして開かず、素のパラグラフ行として扱う
+- キャプションは各行をインライン解釈し、行間は改行扱い
+- 空行は無視
+
 ## その他
 
 - エスケープ機構なし
@@ -142,17 +164,19 @@ EOF まで閉じ `\` が現れなければ、EOF で自動クローズする。
 ```ts
 type Document = { type: "document"; children: Block[] }
 
-type Block = Paragraph | Heading | List | CodeBlock
+type Block = Paragraph | Heading | List | CodeBlock | Image
 
 type Paragraph = { type: "paragraph"; children: Inline[] }
 type Heading = { type: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; children: Inline[] }
 type List = { type: "list"; items: ListItem[] }
 type ListItem = { type: "listItem"; children: Inline[] }
 type CodeBlock = { type: "code"; lang: string; content: string }
+type Image = { type: "image"; src: string; srcset?: string; width?: number; height?: number; caption: Inline[] }
 
-type Inline = Text | Link | LineBreak | InlineCode
+type Inline = Text | Link | LineBreak | InlineCode | InlineImage
 type Text = { type: "text"; value: string }
 type Link = { type: "link"; url: string; label: string }
 type LineBreak = { type: "lineBreak" }
 type InlineCode = { type: "inlineCode"; value: string }
+type InlineImage = { type: "inlineImage"; src: string; srcset?: string; width?: number; height?: number; alt: string }
 ```

@@ -1,14 +1,16 @@
 import { zValidator } from "@hono/zod-validator";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { css } from "hono/css";
+import { raw } from "hono/html";
 import type { FC } from "hono/jsx";
 import { nanoid } from "nanoid/non-secure";
 import { z } from "zod";
 import { type AppBindings, database } from "../db/client";
-import { post as postTable } from "../db/schema";
+import { draft as draftTable, post as postTable } from "../db/schema";
 import { renderPostBody } from "../post/render-body";
 import { PostPage } from "../ui/post-page";
+import { adminClientScript } from "./admin.client";
 
 const adminPage = css`
   min-height: 100vh;
@@ -187,6 +189,11 @@ const bodySection = css`
   margin-top: 2rem;
 `;
 
+const saveStatus = css`
+  font-size: 0.75rem;
+  color: #9ca3af;
+`;
+
 type PostFormValue = {
   title: string;
   slug: string;
@@ -198,10 +205,10 @@ const POST_FORM_ID = "post-form";
 const DELETE_FORM_ID = "delete-form";
 
 const PostEditor: FC<{
+  draftId: string;
   post: PostFormValue;
-  error?: Record<string, string[] | undefined>;
-}> = ({ post }) => {
-  const hasSlug = post.slug !== "";
+  isExisting: boolean;
+}> = ({ draftId, post, isExisting }) => {
   return (
     <div class={adminPage}>
       <header class={adminHeader}>
@@ -210,6 +217,7 @@ const PostEditor: FC<{
             ← Back to posts
           </a>
           <div class={actionGroup}>
+            <span id={"save-status"} class={saveStatus} />
             <button
               type={"submit"}
               form={POST_FORM_ID}
@@ -221,7 +229,7 @@ const PostEditor: FC<{
             >
               Preview
             </button>
-            {hasSlug && (
+            {isExisting && (
               <>
                 <span class={verticalDivider} />
                 <button
@@ -242,6 +250,7 @@ const PostEditor: FC<{
 
       <main class={adminMain}>
         <form id={POST_FORM_ID} method={"POST"}>
+          <input type={"hidden"} name={"draftId"} value={draftId} />
           <div class={fieldGrid}>
             <div class={fullColumn}>
               <label class={fieldLabel} for={"title"}>
@@ -294,14 +303,16 @@ const PostEditor: FC<{
           </div>
         </form>
 
-        {hasSlug && (
+        {isExisting && (
           <form
             id={DELETE_FORM_ID}
             method={"POST"}
-            action={`/admin/posts/${post.slug}/delete`}
+            action={`/admin/posts/${draftId}/delete`}
           />
         )}
       </main>
+
+      <script type="module">{raw(adminClientScript)}</script>
     </div>
   );
 };
@@ -313,23 +324,26 @@ const formatDatetimeLocal = (d: Date): string => {
   )}:${pad(d.getMinutes())}`;
 };
 
-const emptyPost = (): PostFormValue => ({
-  title: "",
-  slug: "",
-  body: "",
-  publishedAt: null,
-});
-
 export const adminRoutes = new Hono<{ Bindings: AppBindings }>();
 
+// --- Post list ---
 adminRoutes.get("/posts", async (c) => {
   const db = database(c.env.DB);
-  const posts = await db
-    .select()
-    .from(postTable)
+  // Left join draft with post to show all drafts and their publish status
+  const rows = await db
+    .select({
+      draftId: draftTable.id,
+      title: draftTable.title,
+      slug: draftTable.slug,
+      postId: draftTable.postId,
+      publishedAt: postTable.publishedAt,
+      createdAt: draftTable.createdAt,
+    })
+    .from(draftTable)
+    .leftJoin(postTable, eq(draftTable.postId, postTable.id))
     .orderBy(
       sql`case when ${postTable.publishedAt} is null then 0 else 1 end`,
-      desc(postTable.createdAt),
+      desc(draftTable.createdAt),
     );
 
   return c.render(
@@ -366,15 +380,15 @@ adminRoutes.get("/posts", async (c) => {
             border-top: 1px solid #e5e7eb;
           `}
         >
-          {posts.map((p) => (
+          {rows.map((r) => (
             <li
-              key={p.slug}
+              key={r.draftId}
               class={css`
                 border-bottom: 1px solid #e5e7eb;
               `}
             >
               <a
-                href={`/admin/posts/${p.slug}`}
+                href={`/admin/posts/${r.draftId}`}
                 class={css`
                   display: flex;
                   align-items: center;
@@ -389,8 +403,8 @@ adminRoutes.get("/posts", async (c) => {
                   }
                 `}
               >
-                <span>{p.title}</span>
-                {p.publishedAt ? (
+                <span>{r.title || "(untitled)"}</span>
+                {r.publishedAt ? (
                   <span
                     class={css`
                       font-size: 0.75rem;
@@ -420,6 +434,7 @@ adminRoutes.get("/posts", async (c) => {
   );
 });
 
+// --- Preview ---
 adminRoutes.post("/posts/preview", async (c) => {
   const formData = await c.req.formData();
   const title = String(formData.get("title") ?? "");
@@ -436,57 +451,99 @@ adminRoutes.post("/posts/preview", async (c) => {
   });
 });
 
-adminRoutes.get("/posts/:slug", async (c) => {
-  const slug = c.req.param("slug");
+// --- New post (create draft) ---
+adminRoutes.get("/posts/new", async (c) => {
+  const draftId = nanoid();
   const db = database(c.env.DB);
-  const [p] = await db.select().from(postTable).where(eq(postTable.slug, slug));
+  const now = new Date();
+  await db.insert(draftTable).values({
+    id: draftId,
+    postId: null,
+    title: "",
+    body: "",
+    slug: "",
+    createdAt: now,
+    updatedAt: now,
+  });
+  return c.redirect(`/admin/posts/${draftId}`, 303);
+});
 
-  if (!p) {
-    return c.render(<PostEditor post={emptyPost()} />);
+// --- Edit post (load draft) ---
+adminRoutes.get("/posts/:draftId", async (c) => {
+  const draftId = c.req.param("draftId");
+  const db = database(c.env.DB);
+
+  const [d] = await db
+    .select({
+      id: draftTable.id,
+      postId: draftTable.postId,
+      title: draftTable.title,
+      body: draftTable.body,
+      slug: draftTable.slug,
+      publishedAt: postTable.publishedAt,
+    })
+    .from(draftTable)
+    .leftJoin(postTable, eq(draftTable.postId, postTable.id))
+    .where(eq(draftTable.id, draftId));
+
+  if (!d) {
+    return c.notFound();
   }
 
   return c.render(
     <PostEditor
+      draftId={d.id}
       post={{
-        title: p.title,
-        slug: p.slug,
-        body: p.body,
-        publishedAt: p.publishedAt,
+        title: d.title,
+        slug: d.slug,
+        body: d.body,
+        publishedAt: d.publishedAt,
       }}
+      isExisting={d.postId !== null}
     />,
   );
 });
 
+// --- Auto-save (update draft) ---
 adminRoutes.post(
-  "/posts/:slug",
+  "/posts/:draftId/autosave",
+  zValidator(
+    "json",
+    z.object({
+      title: z.string(),
+      slug: z.string(),
+      body: z.string(),
+    }),
+  ),
+  async (c) => {
+    const draftId = c.req.param("draftId");
+    const { title, slug, body } = c.req.valid("json");
+    const db = database(c.env.DB);
+
+    await db
+      .update(draftTable)
+      .set({ title, slug, body, updatedAt: new Date() })
+      .where(eq(draftTable.id, draftId));
+
+    return c.json({ ok: true });
+  },
+);
+
+// --- Save (publish / update) ---
+adminRoutes.post(
+  "/posts/:draftId",
   zValidator(
     "form",
     z.object({
-      title: z.string().min(1),
-      slug: z.string().min(1),
+      draftId: z.string(),
+      title: z.string(),
+      slug: z.string(),
       body: z.string(),
       publishedAt: z.string().optional(),
     }),
-    (result, c) => {
-      if (!result.success) {
-        return c.render(
-          <PostEditor
-            post={{
-              title: result.data.title,
-              slug: result.data.slug,
-              body: result.data.body,
-              publishedAt: result.data.publishedAt
-                ? new Date(result.data.publishedAt)
-                : null,
-            }}
-            error={result.error.flatten().fieldErrors}
-          />,
-        );
-      }
-    },
   ),
   async (c) => {
-    const currentSlug = c.req.param("slug");
+    const draftId = c.req.param("draftId");
     const {
       title,
       slug,
@@ -494,48 +551,84 @@ adminRoutes.post(
       publishedAt: publishedAtStr,
     } = c.req.valid("form");
     const publishedAt = publishedAtStr ? new Date(publishedAtStr) : null;
+    const now = new Date();
 
     const db = database(c.env.DB);
-    const [p] = await db
-      .select()
-      .from(postTable)
-      .where(eq(postTable.slug, currentSlug));
 
-    if (!p) {
+    // Always update draft
+    await db
+      .update(draftTable)
+      .set({ title, slug, body, updatedAt: now })
+      .where(eq(draftTable.id, draftId));
+
+    // Get draft to check if post exists
+    const [d] = await db
+      .select()
+      .from(draftTable)
+      .where(eq(draftTable.id, draftId));
+
+    if (!d) {
+      return c.notFound();
+    }
+
+    // Sync draft → post only when publishing
+    if (!publishedAt) {
+      return c.json({ ok: true, published: false });
+    }
+
+    // Validate for publish
+    const errors: string[] = [];
+    if (!title) errors.push("Title is required");
+    if (!slug) errors.push("Slug is required");
+
+    if (errors.length > 0) {
+      return c.json({ ok: false, errors }, 400);
+    }
+
+    if (d.postId) {
+      await db
+        .update(postTable)
+        .set({ title, body, slug, updatedAt: now, publishedAt })
+        .where(eq(postTable.id, d.postId));
+    } else {
+      const postId = nanoid();
       await db.insert(postTable).values({
-        id: nanoid(),
+        id: postId,
         title,
         body,
         slug,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
         publishedAt,
       });
-    } else {
       await db
-        .update(postTable)
-        .set({
-          title,
-          body,
-          slug,
-          updatedAt: new Date(),
-          publishedAt,
-        })
-        .where(eq(postTable.slug, currentSlug));
+        .update(draftTable)
+        .set({ postId })
+        .where(eq(draftTable.id, draftId));
     }
 
-    return c.redirect(`/admin/posts/${slug}`, 303);
+    return c.json({ ok: true, published: true });
   },
 );
 
-adminRoutes.post("/posts/:slug/delete", async (c) => {
-  const slug = c.req.param("slug");
+// --- Delete ---
+adminRoutes.post("/posts/:draftId/delete", async (c) => {
+  const draftId = c.req.param("draftId");
   const db = database(c.env.DB);
-  await db.delete(postTable).where(eq(postTable.slug, slug));
+
+  const [d] = await db
+    .select()
+    .from(draftTable)
+    .where(eq(draftTable.id, draftId));
+
+  if (d?.postId) {
+    await db.delete(postTable).where(eq(postTable.id, d.postId));
+  }
+  await db.delete(draftTable).where(eq(draftTable.id, draftId));
 
   return c.render(
     <div>
-      <p>Deleted {slug}</p>
+      <p>Deleted</p>
       <a href={"/admin/posts"}>return to posts</a>
     </div>,
   );

@@ -27,3 +27,13 @@ export const post = sqliteTable("post", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   publishedAt: integer("published_at", { mode: "timestamp_ms" }),
 });
+
+export const draft = sqliteTable("draft", {
+  id: text("draft_id").primaryKey(),
+  postId: text("post_id").references(() => post.id),
+  title: text("title").notNull().default(""),
+  body: text("body").notNull().default(""),
+  slug: text("slug").notNull().default(""),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

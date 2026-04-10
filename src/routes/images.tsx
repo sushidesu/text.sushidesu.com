@@ -1,10 +1,14 @@
-import { desc, eq, like } from "drizzle-orm";
+import { desc, eq, like, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { css } from "hono/css";
 import { raw } from "hono/html";
 import { nanoid } from "nanoid/non-secure";
 import { type AppBindings, database } from "../db/client";
-import { image as imageTable, post as postTable } from "../db/schema";
+import {
+  draft as draftTable,
+  image as imageTable,
+  post as postTable,
+} from "../db/schema";
 import { imagesClientScript } from "./images.client";
 
 export const imagesRoutes = new Hono<{ Bindings: AppBindings }>();
@@ -254,11 +258,23 @@ imagesRoutes.put("/:id", async (c) => {
 imagesRoutes.get("/:id/references", async (c) => {
   const id = c.req.param("id");
   const db = database(c.env.DB);
-  const refs = await db
+  const pattern = `%\\i ${id}%`;
+  // Search both published posts and drafts
+  const postRefs = await db
     .select({ slug: postTable.slug, title: postTable.title })
     .from(postTable)
-    .where(like(postTable.body, `%\\i ${id}%`));
-  return c.json({ references: refs });
+    .where(like(postTable.body, pattern));
+  const draftRefs = await db
+    .select({ slug: draftTable.slug, title: draftTable.title })
+    .from(draftTable)
+    .where(like(draftTable.body, pattern));
+  // Deduplicate by title
+  const seen = new Set(postRefs.map((r) => r.title));
+  const combined = [
+    ...postRefs,
+    ...draftRefs.filter((r) => !seen.has(r.title)),
+  ];
+  return c.json({ references: combined });
 });
 
 imagesRoutes.delete("/:id", async (c) => {
